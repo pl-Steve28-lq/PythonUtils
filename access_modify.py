@@ -13,12 +13,16 @@ def privatefunc(cls, f):
 def protectedfunc(cls, f):
   def _(*args, **kwargs):
     mycls = type(args[0])
+    caller = inspect.stack()[1].function
     if (
-      cls != mycls and
-      not cls.__name__ in list(map(
-        lambda x: x.__name__,
-        mycls.__bases__
-      ))
+      not hasattr(mycls, caller) or (
+        cls != mycls and
+        not hasattr(cls, caller) and
+        not cls.__name__ in list(map(
+          lambda x: x.__name__,
+          mycls.__bases__
+        ))
+      )
     ):
       raise AccessException("Protected function cannot be accessed.")
     return f(*args, **kwargs)
@@ -69,20 +73,18 @@ if __name__ == '__main__':
     @protected
     def b(self): return self.a()+1
 
-  @access
   class qwer(test):
-    @public
     def c(self): return self.b()+1
   
   r = test()
   t = qwer()
   
-  try: print(r.a())
+  try: print(f'r.a() = {r.a()}')
   except AccessException as e:
-    print(f'r.a() is private!')
+    print('r.a() is private!')
   
-  try: print(r.b())
+  try: print(f'r.b() = {r.b()}')
   except AccessException as e:
-    print(f'r.b() is protected!')
+    print('r.b() is protected!')
   
   print(f't.c() = {t.c()}')
